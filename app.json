@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Pantry to Plate",
+    "slug": "pantry-to-plate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "pantrytoplate",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pantrytoplate.app"
+    },
+    "android": {
+      "package": "com.pantrytoplate.app",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pantry to Plate needs access to your photos so you can pick a receipt you already took.",
+          "cameraPermission": "Pantry to Plate uses the camera to photograph grocery receipts."
+        }
+      ],
+      "expo-status-bar",
+      "expo-splash-screen"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
