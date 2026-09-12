@@ -140,14 +140,19 @@ and anything cooked in the last two weeks sinks.
 6. Only on Confirm does anything reach the pantry. Items that were on the
    shopping list get ticked off automatically.
 
-The dictionary block is marked for prompt caching and ordered by slug so its
-bytes are identical every time. The function returns `cache_read_input_tokens`
-in its response: on the second and later scans that should be non-zero. A zero
-means the prefix changed and every scan is re-paying for the whole dictionary.
-
 The review step is not a formality. Receipt abbreviations are genuinely
 ambiguous, and a wrong guess that slips into the pantry makes the app suggest
 meals from food you do not own, with nothing to explain why.
+
+It is also why a cheaper model is the right call. The function runs Claude
+Sonnet rather than Opus, roughly 2.4 times less per scan, because that review
+gate turns a misread line into a tap rather than a corrupted pantry.
+
+The dictionary block is deliberately **not** marked for prompt caching. Cache
+entries live five minutes and only break even across two requests inside that
+window. Receipts get scanned days apart, so caching it would pay the 1.25x
+write premium on every single scan and never once collect a read. Add
+`cache_control` back only if you start scanning several receipts in a row.
 
 ---
 
@@ -195,6 +200,26 @@ items.
 members of one household. Add a pantry item in one and confirm it appears in the
 other without a refresh. Delete one and confirm it disappears, which is what
 migration `0005` is for.
+
+---
+
+## What it costs
+
+Per scan, at Claude Sonnet rates, estimated from the real payload:
+
+| | Tokens | Cost |
+|---|---|---|
+| Ingredient dictionary and instructions | ~4,800 | $0.010 |
+| Receipt image | ~1,500 | $0.003 |
+| Output schema and prompt | ~370 | $0.001 |
+| Response, including thinking | ~1,800 | $0.018 |
+| **Total** | | **~$0.032** |
+
+A household shopping weekly spends well under fifty cents a month. The
+function returns its real `usage` alongside the parsed items, so check the
+estimate rather than trusting it.
+
+Nothing else in the app calls an API that charges per use.
 
 ---
 

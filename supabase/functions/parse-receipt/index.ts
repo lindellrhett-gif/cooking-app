@@ -14,7 +14,9 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.124.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.116.0';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
-const MODEL = 'claude-opus-5';
+// Sonnet rather than Opus: about 2.4x cheaper per scan, and the review screen
+// means a misread line costs the user a tap rather than a corrupted pantry.
+const MODEL = 'claude-sonnet-5';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -168,9 +170,7 @@ Deno.serve(async (req) => {
 
   const mediaType = file.type && file.type.startsWith('image/') ? file.type : 'image/jpeg';
 
-  // Ordered by slug so the bytes are identical on every request. Prompt
-  // caching is a prefix match: any reordering here silently costs a cache hit
-  // and re-bills the whole dictionary on every scan.
+  // Ordered by slug so the prompt is stable and easy to diff between runs.
   const { data: ingredients, error: ingError } = await asService
     .from('ingredients')
     .select('slug, display_name, aliases')
@@ -202,8 +202,6 @@ Deno.serve(async (req) => {
           effort: 'medium',
           format: { type: 'json_schema', schema: RECEIPT_SCHEMA },
         },
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
         system: [
           {
             type: 'text',
@@ -212,9 +210,10 @@ Deno.serve(async (req) => {
           {
             type: 'text',
             text: `Ingredient list. Each line is: slug | name | aliases\n\n${dictionary}`,
-            // The dictionary is large and byte-identical every time, so it is
-            // the whole reason caching pays off here.
-            cache_control: { type: 'ephemeral' },
+            // Deliberately not cached. Cache entries live five minutes and
+            // break even only across two requests inside that window, but
+            // receipts get scanned days apart. Marking this block would pay
+            // the 1.25x write premium on every scan and never collect a read.
           },
         ],
         messages: [
@@ -257,13 +256,11 @@ Deno.serve(async (req) => {
 
     return json({
       ...parsed,
-      // Surfaced so you can confirm the dictionary cache is actually working.
-      // A zero here on the second and later scans means the prefix changed.
+      // Surfaced so the real cost per scan can be checked against the
+      // estimate rather than assumed.
       usage: {
         input_tokens: message.usage.input_tokens,
         output_tokens: message.usage.output_tokens,
-        cache_read_input_tokens: message.usage.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: message.usage.cache_creation_input_tokens ?? 0,
       },
     });
   } catch (e) {
