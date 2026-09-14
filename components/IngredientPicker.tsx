@@ -2,16 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Empty, Loading } from '@/components/ui';
+import { Empty, Loading, ModalScreen } from '@/components/ui';
 import { useIngredientSearch } from '@/lib/queries/pantry';
 import { categoryLabel, colors, radius, space, type } from '@/lib/theme';
 import type { Ingredient } from '@/lib/types';
@@ -51,72 +49,69 @@ export function IngredientPicker({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={s.safe}>
-        <View style={s.header}>
-          <Text style={[type.title, { color: colors.text, flex: 1 }]}>{title}</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={24} color={colors.textMuted} />
+    <ModalScreen visible={visible} onClose={onClose}>
+      <View style={s.header}>
+        <Text style={[type.title, { color: colors.text, flex: 1 }]}>{title}</Text>
+        <Pressable onPress={onClose} hitSlop={10}>
+          <Ionicons name="close" size={24} color={colors.textMuted} />
+        </Pressable>
+      </View>
+
+      <View style={s.searchWrap}>
+        <Ionicons name="search" size={17} color={colors.textFaint} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search by name, or what the receipt called it"
+          placeholderTextColor={colors.textFaint}
+          style={s.search}
+          autoFocus
+          autoCorrect={false}
+        />
+        {query.length > 0 ? (
+          <Pressable onPress={() => setQuery('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={17} color={colors.textFaint} />
           </Pressable>
-        </View>
+        ) : null}
+      </View>
 
-        <View style={s.searchWrap}>
-          <Ionicons name="search" size={17} color={colors.textFaint} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search by name, or what the receipt called it"
-            placeholderTextColor={colors.textFaint}
-            style={s.search}
-            autoFocus
-            autoCorrect={false}
-          />
-          {query.length > 0 ? (
-            <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={17} color={colors.textFaint} />
+      {isLoading ? (
+        <Loading />
+      ) : (
+        <FlatList
+          data={data ?? []}
+          keyExtractor={(i) => i.id}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: space.xxl }}
+          ItemSeparatorComponent={() => <View style={s.separator} />}
+          ListEmptyComponent={
+            <Empty
+              title="No match"
+              body="Nothing in the ingredient list matches that. Try a simpler word, like the base food rather than the brand."
+            />
+          }
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => handleSelect(item)}
+              style={({ pressed }) => [s.row, pressed && { backgroundColor: colors.surfaceAlt }]}
+            >
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[type.body, { color: colors.text }]}>{item.display_name}</Text>
+                <Text style={[type.small, { color: colors.textFaint }]}>
+                  {categoryLabel(item.category)}
+                  {item.is_staple ? ' · staple' : ''}
+                </Text>
+              </View>
+              <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
             </Pressable>
-          ) : null}
-        </View>
-
-        {isLoading ? (
-          <Loading />
-        ) : (
-          <FlatList
-            data={data ?? []}
-            keyExtractor={(i) => i.id}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: space.xxl }}
-            ItemSeparatorComponent={() => <View style={s.separator} />}
-            ListEmptyComponent={
-              <Empty
-                title="No match"
-                body="Nothing in the ingredient list matches that. Try a simpler word, like the base food rather than the brand."
-              />
-            }
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => handleSelect(item)}
-                style={({ pressed }) => [s.row, pressed && { backgroundColor: colors.surfaceAlt }]}
-              >
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[type.body, { color: colors.text }]}>{item.display_name}</Text>
-                  <Text style={[type.small, { color: colors.textFaint }]}>
-                    {categoryLabel(item.category)}
-                    {item.is_staple ? ' · staple' : ''}
-                  </Text>
-                </View>
-                <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
-              </Pressable>
-            )}
-          />
-        )}
-      </SafeAreaView>
-    </Modal>
+          )}
+        />
+      )}
+    </ModalScreen>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

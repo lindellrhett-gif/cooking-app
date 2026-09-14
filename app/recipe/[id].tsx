@@ -2,16 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Card, ErrorNote, Loading, Macros, Pill } from '@/components/ui';
+import { Button, Card, ErrorNote, Loading, Macros, ModalScreen, Pill } from '@/components/ui';
 import { usePantry, useRemovePantryItem } from '@/lib/queries/pantry';
 import {
   useAddMissingToList,
@@ -265,59 +263,57 @@ function CookedPrompt({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-        <ScrollView contentContainerStyle={s.promptScroll}>
-          <Text style={[type.title, { color: colors.text }]}>Used anything up?</Text>
-          <Text style={[type.body, { color: colors.textMuted }]}>
-            Tick whatever you finished and it will come out of the pantry. Leave the rest alone.
+    <ModalScreen visible={visible} onClose={onClose}>
+      <ScrollView contentContainerStyle={s.promptScroll}>
+        <Text style={[type.title, { color: colors.text }]}>Used anything up?</Text>
+        <Text style={[type.body, { color: colors.textMuted }]}>
+          Tick whatever you finished and it will come out of the pantry. Leave the rest alone.
+        </Text>
+
+        {removable.length === 0 ? (
+          <Text style={[type.small, { color: colors.textFaint }]}>
+            Nothing from this recipe is tracked in your pantry right now.
           </Text>
+        ) : (
+          <Card style={{ gap: space.sm }}>
+            {removable.map(({ line }) => {
+              const on = selected.has(line.ingredient_id);
+              return (
+                <Pressable
+                  key={line.ingredient_id}
+                  onPress={() => toggle(line.ingredient_id)}
+                  style={s.promptRow}
+                >
+                  <Ionicons
+                    name={on ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={on ? colors.primary : colors.borderStrong}
+                  />
+                  <Text style={[type.body, { color: colors.text, flex: 1 }]}>
+                    {line.display_name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </Card>
+        )}
 
-          {removable.length === 0 ? (
-            <Text style={[type.small, { color: colors.textFaint }]}>
-              Nothing from this recipe is tracked in your pantry right now.
-            </Text>
-          ) : (
-            <Card style={{ gap: space.sm }}>
-              {removable.map(({ line }) => {
-                const on = selected.has(line.ingredient_id);
-                return (
-                  <Pressable
-                    key={line.ingredient_id}
-                    onPress={() => toggle(line.ingredient_id)}
-                    style={s.promptRow}
-                  >
-                    <Ionicons
-                      name={on ? 'checkbox' : 'square-outline'}
-                      size={22}
-                      color={on ? colors.primary : colors.borderStrong}
-                    />
-                    <Text style={[type.body, { color: colors.text, flex: 1 }]}>
-                      {line.display_name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </Card>
-          )}
-
-          <View style={{ gap: space.sm }}>
-            <Button
-              title={
-                selected.size === 0
-                  ? 'Done'
-                  : `Remove ${selected.size} ${selected.size === 1 ? 'item' : 'items'}`
-              }
-              onPress={selected.size === 0 ? onClose : confirm}
-              loading={removeItem.isPending}
-            />
-            {selected.size > 0 ? (
-              <Button title="Skip" variant="ghost" onPress={onClose} />
-            ) : null}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
+        <View style={{ gap: space.sm }}>
+          <Button
+            title={
+              selected.size === 0
+                ? 'Done'
+                : `Remove ${selected.size} ${selected.size === 1 ? 'item' : 'items'}`
+            }
+            onPress={selected.size === 0 ? onClose : confirm}
+            loading={removeItem.isPending}
+          />
+          {selected.size > 0 ? (
+            <Button title="Skip" variant="ghost" onPress={onClose} />
+          ) : null}
+        </View>
+      </ScrollView>
+    </ModalScreen>
   );
 }
 

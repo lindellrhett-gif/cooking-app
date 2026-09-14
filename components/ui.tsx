@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -9,8 +10,45 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, shadow, space, type } from '@/lib/theme';
+
+/**
+ * A full-screen modal that keeps its content clear of the notch and home bar.
+ *
+ * SafeAreaView cannot be trusted inside a React Native Modal: the modal is a
+ * separate native window, and on iOS with the new architecture it can measure
+ * zero insets, putting the title under the status bar. The insets are read
+ * from the app's root provider instead, which measures the real screen.
+ */
+export function ModalScreen({
+  visible,
+  onClose,
+  children,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.bg,
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        }}
+      >
+        {children}
+      </View>
+    </Modal>
+  );
+}
 
 export function Button({
   title,
