@@ -120,7 +120,9 @@ export default function ReviewScreen() {
     queryClient.invalidateQueries({ queryKey: ['shopping', householdId] });
     queryClient.invalidateQueries({ queryKey: ['staple-optouts', householdId] });
 
-    router.replace('/(tabs)/pantry');
+    // Pop back to the tabs already underneath rather than replacing, which would
+    // mount a second copy of them on top of the first.
+    router.dismissTo('/(tabs)/pantry');
   };
 
   if (!parsed) {

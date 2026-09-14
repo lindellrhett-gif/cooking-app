@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useHouseholdId } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 
+let subscriptionCount = 0;
+
 /**
  * Keeps two phones in one kitchen in sync.
  *
@@ -26,8 +28,12 @@ export function useHouseholdRealtime() {
 
     const filter = `household_id=eq.${householdId}`;
 
+    // The topic must be unique per subscription. supabase.channel() returns the
+    // existing channel for a topic it already knows, and removeChannel() is
+    // async, so a remount or a second mounted copy would otherwise get back a
+    // channel that is already subscribed, and adding listeners to it throws.
     const channel = supabase
-      .channel(`household:${householdId}`)
+      .channel(`household:${householdId}:${++subscriptionCount}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'pantry_items', filter },
