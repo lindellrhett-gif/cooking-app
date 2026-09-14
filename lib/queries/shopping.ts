@@ -124,8 +124,13 @@ export function useMoveCheckedToPantry() {
       const withIngredient = items.filter((i) => i.is_checked && i.ingredient_id);
       if (withIngredient.length === 0) return 0;
 
+      // One row per ingredient: a single upsert that names the same pantry row
+      // twice fails outright ("cannot affect row a second time"), and a list
+      // can hold two ticked rows for one ingredient.
+      const byIngredient = new Map(withIngredient.map((i) => [i.ingredient_id, i]));
+
       const { error } = await supabase.from('pantry_items').upsert(
-        withIngredient.map((i) => ({
+        [...byIngredient.values()].map((i) => ({
           household_id: householdId,
           ingredient_id: i.ingredient_id,
           quantity: i.quantity,
